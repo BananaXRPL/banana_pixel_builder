@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$BANANA Business Pixel Art Editor</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #1e1e1e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(90deg, #ffcc00, #ff9900);
+            color: black;
+            padding: 20px;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 20px;
+            line-height: 1.2;
+        }
+        .header:hover {
+            text-shadow: 0 0 5px #ffcc00;
+            transition: text-shadow 0.3s ease;
+        }
+        .header span {
+            display: block;
+            font-size: 14px;
+            color: #333;
+        }
+        .main-container {
+            display: flex;
+            flex-grow: 1;
+            flex-direction: column;
+        }
+        .editor-container {
+            display: flex;
+            flex-grow: 1;
+        }
+        .sidebar {
+            width: 80px;
+            background: #252526;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        .tools button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .tools button:hover, .tools button.active {
+            background: #ffcc00;
+            color: black;
+            border-radius: 5px;
+        }
+        .canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #2d2d30;
+            position: relative;
+            border: 5px solid #ffcc00;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .right-panel {
+            width: 250px;
+            background: #252526;
+            padding: 10px;
+            border-left: 2px solid #ffcc00;
+            overflow-y: auto;
+        }
+        canvas {
+            image-rendering: pixelated;
+            position: absolute;
+            transform-origin: 0 0;
+        }
+        .signature {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 10px;
+            color: #ffcc00;
+            font-family: 'Press Start 2P', cursive;
+            animation: peelIn 1s ease forwards;
+        }
+        @keyframes peelIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .layer {
+            padding: 5px;
+            background: #333;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+        .layer.active {
+            background: #ffcc00;
+            color: black;
+        }
+        .timeline {
+            background: #252526;
+            padding: 10px;
+            height: 100px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-top: 2px solid #ffcc00;
+        }
+        .frame {
+            display: inline-block;
+            width: 64px;
+            height: 64px;
+            margin: 5px;
+            background: #333;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .frame.active {
+            border: 2px solid #ffcc00;
+        }
+        .frame canvas {
+            width: 100%;
+            height: 100%;
+        }
+        #loading {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADnSURBVFhH7ZbBDYJADEVbAhZswVaA3QXsLdhbgBXgK7ANWIEN2IBtQE/gwM8Z8DAkJUmSlOTNJO/dk+SdTILgB5sFtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEt4P/AJ2jYcIuZ4gAAAABJRU5ErkJggg==') no-repeat center;
+            background-size: contain;
+            display: none;
+        }
+        #loading.active {
+            display: block;
+            animation: fillBanana 1s infinite alternate;
+        }
+        @keyframes fillBanana {
+            0% { background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADnSURBVFhH7ZbBDYJADEVbAhZswVaA3QXsLdhbgBXgK7ANWIEN2IBtQE/gwM8Z8DAkJUmSlOTNJO/dk+SdTILgB5sFtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEt4P/AJ2jYcIuZ4gAAAABJRU5ErkJggg==') no-repeat center; }
+            100% { background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADrSURBVFhH7ZbBDYJADEVbAhZswVaA3QXsLdhbgBXgK7ANWIEN2IBtQE/gwM8Z8DAkJUmSlOTNJO/dk+SdTILgB5sFtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEtwS3BLcEt4P/AAf1YcIuY4gAAAABJRU5ErkJggg==') no-repeat center; }
+        }
+        @keyframes flashBanana {
+            0%, 100% { content: "🎬"; }
+            50% { content: "🍌"; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading"></div>
+    <div class="header">
+        $BANANA Business <span>8-Bit Content Lab</span>
+    </div>
+    <div class="main-container">
+        <div class="editor-container">
+            <div class="sidebar">
+                <div class="tools">
+                    <button data-tool="pen" title="Pen">🖊️</button>
+                    <button data-tool="eraser" title="Eraser">🧽</button>
+                    <button data-tool="color" title="Color Picker">🎨</button>
+                    <button data-tool="bgRemove" title="Background Remover">🗑️</button>
+                    <button data-tool="undo" title="Undo">↶</button>
+                    <button data-tool="redo" title="Redo">↷</button>
+                    <button data-tool="save" title="Save as PNG">💾</button>
+                    <button data-tool="zoomIn" title="Zoom In">+</button>
+                    <button data-tool="zoomOut" title="Zoom Out">-</button>
+                    <button data-tool="play" title="Play">▶️</button>
+                    <button data-tool="stop" title="Stop">⏹️</button>
+                    <button data-tool="addFrame" title="Add Frame">➕</button>
+                    <button data-tool="deleteFrame" title="Delete Frame">➖</button>
+                    <button data-tool="exportGif" title="Export as GIF">🎬</button>
+                </div>
+            </div>
+            <div class="canvas-container">
+                <canvas id="referenceCanvas" width="512" height="512"></canvas>
+                <canvas id="gridCanvas" width="512" height="512" style="pointer-events: none;"></canvas>
+                <canvas id="onionPrev" width="512" height="512" style="pointer-events: none; opacity: 0.3;"></canvas>
+                <canvas id="onionNext" width="512" height="512" style="pointer-events: none; opacity: 0.3;"></canvas>
+                <canvas id="layer1" width="512" height="512"></canvas>
+                <canvas id="layer2" width="512" height="512"></canvas>
+                <canvas id="pixelCanvas" width="512" height="512" style="border:1px solid white;"></canvas>
+            </div>
+            <div class="right-panel">
+                <div>
+                    <label>Color: <input type="color" id="colorPicker" value="#ffcc00"></label>
+                    <label>Brush Size: 
+                        <select id="brushSize">
+                            <option value="1">1x1</option>
+                            <option value="2">2x2</option>
+                            <option value="4">4x4</option>
+                        </select>
+                    </label>
+                    <label><input type="checkbox" id="toggleGrid" checked> Show Grid</label>
+                    <label>Grid Size: 
+                        <select id="gridSize">
+                            <option value="8">8x8</option>
+                            <option value="16">16x16</option>
+                            <option value="32" selected>32x32</option>
+                            <option value="64">64x64</option>
+                        </select>
+                    </label>
+                    <p>Zoom: <span id="zoomLevel">100%</span></p>
+                    <label>Frame Rate: 
+                        <input type="number" id="frameRate" min="1" max="60" value="10"> FPS
+                    </label>
+                    <label><input type="checkbox" id="bananaTime"> Banana Time</label>
+                    <label><input type="checkbox" id="onionSkin" checked> Onion Skin</label>
+                    <label>Symmetry: 
+                        <select id="symmetryMode">
+                            <option value="none" selected>None</option>
+                            <option value="horizontal">Horizontal</option>
+                            <option value="vertical">Vertical</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </label>
+                    <label><input type="checkbox" id="bananaSounds"> Banana Sounds</label>
+                    <h3>Canvas Size</h3>
+                    <label>Width: <input type="number" id="canvasWidth" min="16" max="1024" value="512"></label>
+                    <label>Height: <input type="number" id="canvasHeight" min="16" max="1024" value="512"></label>
+                    <button id="resizeCanvas">Resize</button>
+                    <h3>Reference Image</h3>
+                    <input type="file" id="uploadReference" accept="image/*">
+                    <label>Opacity: <input type="range" id="refOpacity" min="0" max="1" step="0.1" value="0.5"></label>
+                    <label>Gradient: <input type="checkbox" id="refGradient"></label>
+                </div>
+                <h3>Layers</h3>
+                <div id="layers">
+                    <div class="layer" data-layer="0">Reference</div>
+                    <div class="layer active" data-layer="1">Layer 1</div>
+                    <div class="layer" data-layer="2">Layer 2</div>
+                </div>
+                <button id="addLayer">Add Layer</button>
+            </div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+    </div>
+    <div class="signature">Built by the Banana King</div>
+
+    <script>
+        const gridCanvas = document.getElementById("gridCanvas");
+        const gridCtx = gridCanvas.getContext("2d");
+        const pixelCanvas = document.getElementById("pixelCanvas");
+        const pixelCtx = pixelCanvas.getContext("2d");
+        const referenceCanvas = document.getElementById("referenceCanvas");
+        const refCtx = referenceCanvas.getContext("2d");
+        const onionPrev = document.getElementById("onionPrev");
+        const onionNext = document.getElementById("onionNext");
+        const timeline = document.getElementById("timeline");
+        let layers = [
+            { canvas: document.getElementById("layer1"), ctx: document.getElementById("layer1").getContext("2d") },
+            { canvas: document.getElementById("layer2"), ctx: document.getElementById("layer2").getContext("2d") }
+        ];
+        let frames = [[...layers.map(l => ({ canvas: l.canvas.cloneNode(), ctx: l.canvas.cloneNode().getContext("2d") }))]];
+        const toggleGrid = document.getElementById("toggleGrid");
+        const colorPicker = document.getElementById("colorPicker");
+        const brushSize = document.getElementById("brushSize");
+        const gridSizeSelect = document.getElementById("gridSize");
+        const zoomLevelDisplay = document.getElementById("zoomLevel");
+        const frameRateInput = document.getElementById("frameRate");
+        const bananaTime = document.getElementById("bananaTime");
+        const onionSkin = document.getElementById("onionSkin");
+        const symmetryMode = document.getElementById("symmetryMode");
+        const uploadReference = document.getElementById("uploadReference");
+        const refOpacity = document.getElementById("refOpacity");
+        const refGradient = document.getElementById("refGradient");
+        const canvasWidth = document.getElementById("canvasWidth");
+        const canvasHeight = document.getElementById("canvasHeight");
+        const resizeCanvasBtn = document.getElementById("resizeCanvas");
+        const bananaSounds = document.getElementById("bananaSounds");
+        const exportGifBtn = document.getElementById("exportGif");
+        const loading = document.getElementById("loading");
+        let currentTool = "pen";
+        let activeLayer = layers[0];
+        let currentFrame = 0;
+        let isDrawing = false;
+        let isPanning = false;
+        let isPlaying = false;
+        let history = [];
+        let historyIndex = -1;
+        let gridSize = parseInt(gridSizeSelect.value);
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let lastX, lastY;
+
+        // Preload Banana Sounds
+        const peelSound = new Audio('https://freesound.org/data/previews/66/66102_239025-lq.mp3');
+        const chompSound = new Audio('https://freesound.org/data/previews/151/151605_2599966-lq.mp3');
+        const squishSound = new Audio('https://freesound.org/data/previews/423/423787_5121236-lq.mp3');
+        [peelSound, chompSound, squishSound].forEach(sound => sound.preload = "auto");
+
+        function playSound(sound) {
+            if (bananaSounds.checked) sound.play();
+        }
+
+        function showLoading() {
+            loading.classList.add("active");
+            setTimeout(() => loading.classList.remove("active"), 1000);
+        }
+
+        function updateTransform() {
+            const transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+            gridCanvas.style.transform = transform;
+            pixelCanvas.style.transform = transform;
+            referenceCanvas.style.transform = transform;
+            onionPrev.style.transform = transform;
+            onionNext.style.transform = transform;
+            layers.forEach(layer => layer.canvas.style.transform = transform);
+            zoomLevelDisplay.textContent = `${Math.round(zoom * 100)}%`;
+        }
+
+        function drawGrid() {
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            if (!toggleGrid.checked) return;
+            gridCtx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+            gridCtx.lineWidth = 1 / zoom;
+            for (let x = 0; x <= gridCanvas.width; x += gridCanvas.width / gridSize) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x, 0);
+                gridCtx.lineTo(x, gridCanvas.height);
+                gridCtx.stroke();
+            }
+            for (let y = 0; y <= gridCanvas.height; y += gridCanvas.height / gridSize) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y);
+                gridCtx.lineTo(gridCanvas.width, y);
+                gridCtx.stroke();
+            }
+        }
+
+        function updateReference() {
+            refCtx.globalAlpha = parseFloat(refOpacity.value);
+            refCtx.clearRect(0, 0, referenceCanvas.width, referenceCanvas.height);
+            if (refGradient.checked) {
+                const gradient = refCtx.createLinearGradient(0, 0, referenceCanvas.width, referenceCanvas.height);
+                gradient.addColorStop(0, "#ffcc00");
+                gradient.addColorStop(1, "#ff9900");
+                refCtx.fillStyle = gradient;
+                refCtx.fillRect(0, 0, referenceCanvas.width, referenceCanvas.height);
+            }
+            refCtx.drawImage(referenceCanvas.dataset.image || referenceCanvas, 0, 0, referenceCanvas.width, referenceCanvas.height);
+        }
+
+        function saveState() {
+            if (historyIndex < history.length - 1) history = history.slice(0, historyIndex + 1);
+            const state = frames[currentFrame].map(layer => layer.canvas.toDataURL());
+            history.push({ frame: currentFrame, data: state });
+            historyIndex++;
+            if (history.length > 20) { history.shift(); historyIndex--; }
+        }
+
+        function restoreState(index) {
+            if (index < 0 || index >= history.length) return;
+            historyIndex = index;
+            const { frame, data } = history[index];
+            currentFrame = frame;
+            data.forEach((src, i) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => frames[currentFrame][i].ctx.drawImage(img, 0, 0);
+            });
+            updateFrame();
+        }
+
+        function floodFill(ctx, x, y, targetColor) {
+            const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+            const data = imageData.data;
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            const stack = [[x, y]];
+            const targetR = targetColor[0];
+            const targetG = targetColor[1];
+            const targetB = targetColor[2];
+            const visited = new Set();
+
+            while (stack.length) {
+                const [px, py] = stack.pop();
+                const pos = (py * width + px) * 4;
+                if (visited.has(pos) || px < 0 || px >= width || py < 0 || py >= height) continue;
+                visited.add(pos);
+
+                const r = data[pos];
+                const g = data[pos + 1];
+                const b = data[pos + 2];
+
+                if (r === targetR && g === targetG && b === targetB) {
+                    data[pos + 3] = 0;
+                    stack.push([px + 1, py]);
+                    stack.push([px - 1, py]);
+                    stack.push([px, py + 1]);
+                    stack.push([px, py - 1]);
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function drawSymmetric(ctx, x, y, size, fillStyle) {
+            ctx.fillStyle = fillStyle;
+            ctx.fillRect(x, y, size, size);
+            const mode = symmetryMode.value;
+            const centerX = ctx.canvas.width / 2;
+            const centerY = ctx.canvas.height / 2;
+
+            if (mode === "horizontal" || mode === "both") {
+                const mirroredY = centerY + (centerY - y) - size;
+                ctx.fillRect(x, mirroredY, size, size);
+            }
+            if (mode === "vertical" || mode === "both") {
+                const mirroredX = centerX + (centerX - x) - size;
+                ctx.fillRect(mirroredX, y, size, size);
+            }
+            if (mode === "both") {
+                const mirroredX = centerX + (centerX - x) - size;
+                const mirroredY = centerY + (centerY - y) - size;
+                ctx.fillRect(mirroredX, mirroredY, size, size);
+            }
+        }
+
+        function draw(e) {
+            const rect = pixelCanvas.getBoundingClientRect();
+            const scaleAdjustedX = (e.clientX - rect.left - panX) / zoom;
+            const scaleAdjustedY = (e.clientY - rect.top - panY) / zoom;
+            const size = parseInt(brushSize.value) * (pixelCanvas.width / gridSize);
+            const x = Math.floor(scaleAdjustedX / (pixelCanvas.width / gridSize)) * (pixelCanvas.width / gridSize);
+            const y = Math.floor(scaleAdjustedY / (pixelCanvas.height / gridSize)) * (pixelCanvas.height / gridSize);
+            const frameLayer = frames[currentFrame][layers.indexOf(activeLayer)];
+            const fillStyle = currentTool === "eraser" ? "transparent" : colorPicker.value;
+
+            if (currentTool === "bgRemove") {
+                const clickedColor = frameLayer.ctx.getImageData(x, y, 1, 1).data;
+                floodFill(frameLayer.ctx, x, y, clickedColor);
+            } else {
+                drawSymmetric(frameLayer.ctx, x, y, size, fillStyle);
+                if (currentTool === "eraser") playSound(peelSound);
+            }
+            updateFrameThumbnail(currentFrame);
+            if (isDrawing) requestAnimationFrame(() => draw(e));
+        }
+
+        function resizeCanvas(newWidth, newHeight) {
+            showLoading();
+            newWidth = Math.max(16, Math.min(newWidth, 1024));
+            newHeight = Math.max(16, Math.min(newHeight, 1024));
+            const oldWidth = pixelCanvas.width;
+            const oldHeight = pixelCanvas.height;
+
+            [referenceCanvas, gridCanvas, onionPrev, onionNext, pixelCanvas].forEach(canvas => {
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+            });
+
+            updateReference();
+
+            frames = frames.map(frame => {
+                const newFrame = frame.map(layer => {
+                    const tempCanvas = document.createElement("canvas");
+                    tempCanvas.width = oldWidth;
+                    tempCanvas.height = oldHeight;
+                    tempCanvas.getContext("2d").drawImage(layer.canvas, 0, 0);
+                    const newCanvas = document.createElement("canvas");
+                    newCanvas.width = newWidth;
+                    newCanvas.height = newHeight;
+                    const newCtx = newCanvas.getContext("2d");
+                    newCtx.drawImage(tempCanvas, 0, 0, newWidth, newHeight);
+                    return { canvas: newCanvas, ctx: newCtx };
+                });
+                frame.forEach(layer => layer.canvas = null); // Clean up old canvases
+                return newFrame;
+            });
+
+            layers.forEach(layer => {
+                layer.canvas.width = newWidth;
+                layer.canvas.height = newHeight;
+                layer.ctx = layer.canvas.getContext("2d");
+            });
+
+            updateFrame();
+            drawGrid();
+            renderTimeline();
+            updateTransform();
+        }
+
+        function compositeLayers(frameIndex) {
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = pixelCanvas.width;
+            tempCanvas.height = pixelCanvas.height;
+            const tempCtx = tempCanvas.getContext("2d");
+            tempCtx.drawImage(referenceCanvas, 0, 0);
+            frames[frameIndex].forEach(layer => tempCtx.drawImage(layer.canvas, 0, 0));
+            return tempCanvas;
+        }
+
+        function updateFrame() {
+            layers.forEach((layer, i) => {
+                layer.ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+                layer.ctx.drawImage(frames[currentFrame][i].canvas, 0, 0);
+            });
+            if (onionSkin.checked) {
+                onionPrev.getContext("2d").clearRect(0, 0, onionPrev.width, onionPrev.height);
+                onionNext.getContext("2d").clearRect(0, 0, onionNext.width, onionNext.height);
+                if (currentFrame > 0) onionPrev.getContext("2d").drawImage(compositeLayers(currentFrame - 1), 0, 0);
+                if (currentFrame < frames.length - 1) onionNext.getContext("2d").drawImage(compositeLayers(currentFrame + 1), 0, 0);
+            }
+            document.querySelectorAll(".frame").forEach((f, i) => f.classList.toggle("active", i === currentFrame));
+        }
+
+        function updateFrameThumbnail(index) {
+            const frameDiv = timeline.children[index];
+            const thumbnail = frameDiv.querySelector("canvas");
+            const ctx = thumbnail.getContext("2d");
+            ctx.clearRect(0, 0, 64, 64);
+            ctx.drawImage(compositeLayers(index), 0, 0, 64, 64);
+        }
+
+        function renderTimeline() {
+            timeline.innerHTML = "";
+            frames.forEach((_, i) => {
+                const frameDiv = document.createElement("div");
+                frameDiv.className = "frame" + (i === currentFrame ? " active" : "");
+                const thumbnail = document.createElement("canvas");
+                thumbnail.width = 64;
+                thumbnail.height = 64;
+                frameDiv.appendChild(thumbnail);
+                timeline.appendChild(frameDiv);
+                updateFrameThumbnail(i);
+            });
+        }
+
+        function playAnimation() {
+            if (isPlaying || frames.length <= 1) return;
+            isPlaying = true;
+            let frameIndex = currentFrame;
+            function nextFrame() {
+                if (!isPlaying) return;
+                frameIndex = (frameIndex + 1) % frames.length;
+                currentFrame = frameIndex;
+                updateFrame();
+                const fps = bananaTime.checked ? Math.random() * 20 + 5 : parseInt(frameRateInput.value);
+                setTimeout(nextFrame, 1000 / fps);
+            }
+            nextFrame();
+        }
+
+        pixelCanvas.addEventListener("mousedown", (e) => {
+            if (e.button === 0) {
+                isDrawing = true;
+                saveState();
+                draw(e);
+            } else if (e.button === 1) {
+                isPanning = true;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
+        });
+
+        pixelCanvas.addEventListener("mousemove", (e) => {
+            if (isDrawing) draw(e);
+            else if (isPanning) {
+                panX += e.clientX - lastX;
+                panY += e.clientY - lastY;
+                lastX = e.clientX;
+                lastY = e.clientY;
+                updateTransform();
+            }
+        });
+
+        pixelCanvas.addEventListener("mouseup", () => {
+            isDrawing = false;
+            isPanning = false;
+        });
+
+        pixelCanvas.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            zoom += e.deltaY < 0 ? 0.1 : -0.1;
+            zoom = Math.max(0.5, Math.min(zoom, 4));
+            updateTransform();
+            drawGrid();
+        });
+
+        document.querySelector(".tools").addEventListener("click", (e) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            const action = btn.dataset.tool || btn.id;
+
+            switch (action) {
+                case "undo": restoreState(historyIndex - 1); break;
+                case "redo": restoreState(historyIndex + 1); break;
+                case "save":
+                    const link = document.createElement("a");
+                    link.download = "banana_masterpiece.png";
+                    link.href = compositeLayers(currentFrame).toDataURL("image/png");
+                    link.click();
+                    playSound(squishSound);
+                    break;
+                case "zoomIn":
+                    zoom += 0.1;
+                    zoom = Math.min(zoom, 4);
+                    updateTransform();
+                    drawGrid();
+                    break;
+                case "zoomOut":
+                    zoom -= 0.1;
+                    zoom = Math.max(zoom, 0.5);
+                    updateTransform();
+                    drawGrid();
+                    break;
+                case "play": playAnimation(); break;
+                case "stop": isPlaying = false; break;
+                case "addFrame":
+                    const newFrame = layers.map(l => {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = pixelCanvas.width;
+                        canvas.height = pixelCanvas.height;
+                        return { canvas, ctx: canvas.getContext("2d") };
+                    });
+                    frames.push(newFrame);
+                    currentFrame = frames.length - 1;
+                    renderTimeline();
+                    updateFrame();
+                    playSound(chompSound);
+                    break;
+                case "deleteFrame":
+                    if (frames.length > 1) {
+                        saveState();
+                        frames.splice(currentFrame, 1);
+                        currentFrame = Math.min(currentFrame, frames.length - 1);
+                        renderTimeline();
+                        updateFrame();
+                    }
+                    break;
+                case "exportGif":
+                    showLoading();
+                    exportGifBtn.style.animation = "flashBanana 0.5s ease";
+                    setTimeout(() => exportGifBtn.style.animation = "", 500);
+                    const gif = new GIF({ workers: 2, quality: 10, width: pixelCanvas.width, height: pixelCanvas.height });
+                    frames.forEach(frame => gif.addFrame(compositeLayers(frames.indexOf(frame)), { delay: 1000 / parseInt(frameRateInput.value) }));
+                    gif.on("finished", blob => {
+                        const link = document.createElement("a");
+                        link.download = "banana_animation.gif";
+                        link.href = URL.createObjectURL(blob);
+                        link.click();
+                        playSound(squishSound);
+                    });
+                    gif.render();
+                    break;
+                default:
+                    document.querySelector(".tools button.active")?.classList.remove("active");
+                    btn.classList.add("active");
+                    currentTool = action || "pen";
+            }
+        });
+
+        document.getElementById("addLayer").addEventListener("click", () => {
+            const newCanvas = document.createElement("canvas");
+            newCanvas.width = pixelCanvas.width;
+            newCanvas.height = pixelCanvas.height;
+            newCanvas.style.position = "absolute";
+            document.querySelector(".canvas-container").appendChild(newCanvas);
+            const newLayer = { canvas: newCanvas, ctx: newCanvas.getContext("2d") };
+            layers.push(newLayer);
+            frames.forEach(frame => frame.push({ canvas: newCanvas.cloneNode(), ctx: newCanvas.cloneNode().getContext("2d") }));
+            const layerDiv = document.createElement("div");
+            layerDiv.className = "layer";
+            layerDiv.dataset.layer = layers.length;
+            layerDiv.textContent = `Layer ${layers.length}`;
+            document.getElementById("layers").appendChild(layerDiv);
+            updateTransform();
+        });
+
+        document.getElementById("layers").addEventListener("click", (e) => {
+            const layerDiv = e.target.closest(".layer");
+            if (!layerDiv) return;
+            document.querySelector(".layer.active")?.classList.remove("active");
+            layerDiv.classList.add("active");
+            const layerIndex = parseInt(layerDiv.dataset.layer);
+            activeLayer = layerIndex === 0 ? null : layers[layerIndex - 1];
+        });
+
+        timeline.addEventListener("click", (e) => {
+            const frameDiv = e.target.closest(".frame");
+            if (!frameDiv) return;
+            currentFrame = Array.from(timeline.children).indexOf(frameDiv);
+            updateFrame();
+        });
+
+        uploadReference.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const img = new Image();
+            img.onload = () => {
+                refCtx.clearRect(0, 0, referenceCanvas.width, referenceCanvas.height);
+                refCtx.drawImage(img, 0, 0, referenceCanvas.width, referenceCanvas.height);
+                referenceCanvas.dataset.image = img;
+                updateReference();
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        resizeCanvasBtn.addEventListener("click", () => {
+            const newWidth = parseInt(canvasWidth.value);
+            const newHeight = parseInt(canvasHeight.value);
+            resizeCanvas(newWidth, newHeight);
+        });
+
+        refOpacity.addEventListener("input", updateReference);
+        refGradient.addEventListener("change", updateReference);
+        toggleGrid.addEventListener("change", drawGrid);
+        gridSizeSelect.addEventListener("change", () => {
+            gridSize = parseInt(gridSizeSelect.value);
+            drawGrid();
+        });
+        onionSkin.addEventListener("change", updateFrame);
+
+        showLoading();
+        setTimeout(() => loading.classList.remove("active"), 1000);
+        drawGrid();
+        renderTimeline();
+        document.querySelector("[data-tool='pen']").classList.add("active");
+        updateTransform();
+    </script>
+</body>
+</html>
